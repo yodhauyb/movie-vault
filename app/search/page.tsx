@@ -1,6 +1,6 @@
-import Navbar from "../components/Navbar";
-import Hero from "../components/Hero";
-import MovieCard from "../components/MovieCard";
+import Navbar from "@/components/Navbar";
+import Hero from "@/components/Hero";
+import MovieCard from "@/components/MovieCard";
 
 interface TMDBMovie {
   id: number;
