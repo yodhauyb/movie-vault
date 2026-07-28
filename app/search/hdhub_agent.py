@@ -1,57 +1,34 @@
-import json
-import os
 import requests
-from bs4 import BeautifulSoup
 
-# 📁 Configuration Paths & Keys
-JSON_FILE_PATH = "data/telegramlink.json"
-TARGET_URL = "https://new3.hdhub4u.cl/"
+# Aapki TMDB API Key
+TMDB_API_KEY = "f7ab0059bfd1e541fa8b3fb3d709517a"
 
-TMDB_API_KEY = "YOUR_TMDB_API_KEY_HERE" 
+def fetch_hdhub_style_movies():
+    # 1 March 2026 se lekar aaj tak ki Indian release movies, popularity ke hisaab se
+    url = f"https://api.themoviedb.org/3/discover/movie?api_key={TMDB_API_KEY}&with_origin_country=IN&primary_release_date.gte=2026-03-01&sort_by=popularity.desc"
 
-def get_tmdb_id_by_name(movie_title, year=""):
-    if not TMDB_API_KEY or TMDB_API_KEY == "YOUR_TMDB_API_KEY_HERE":
-        return None
-        
-    search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={movie_title}"
-    if year:
-        search_url += f"&year={year}"
-        
     try:
-        response = requests.get(search_url, timeout=10)
+        response = requests.get(url)
         if response.status_code == 200:
-            results = response.json().get("results")
-            if results:
-                return str(results[0]["id"])
-    except Exception:
-        pass
-        
-    return None
-
-def save_to_json(movie_id, telegram_link):
-    data = {}
-    if os.path.exists(JSON_FILE_PATH):
-        try:
-            with open(JSON_FILE_PATH, "r") as f:
-                data = json.load(f)
-        except json.JSONDecodeError:
-            data = {}
+            data = response.json()
+            movies = data.get("results", [])
             
-    data[str(movie_id)] = telegram_link
-    
-    os.makedirs(os.path.dirname(JSON_FILE_PATH), exist_ok=True)
-    with open(JSON_FILE_PATH, "w") as f:
-        json.dump(data, f, indent=4)
-
-def run_autonomous_agent():
-    print("🤖 Agent status: Running locally or via safe fallback...")
-    # Cloud server blocks ki wajah se yahan safe check lagaya gaya hai
-    try:
-        if not os.path.exists(JSON_FILE_PATH):
-            save_to_json("999999", "https://hubcloud.cx/drive/sample_link")
-        print("✅ Agent check passed successfully.")
+            print(f"--- HDHub4u Style: Total {len(movies)} Latest Movies Found (March 2026 Onwards) ---")
+            for index, movie in enumerate(movies, start=1):
+                title = movie.get("title") or movie.get("original_title")
+                release_date = movie.get("release_date", "N/A")
+                movie_id = movie.get("id")
+                
+                # HDHub4u jaisa clean format print hoga
+                print(f"{index}. Title: {title} | Released: {release_date} | TMDB ID: {movie_id}")
+                
+            return movies
+        else:
+            print(f"Failed to fetch data, status code: {response.status_code}")
+            return []
     except Exception as e:
-        print(f"⚠️ Note: {e}")
+        print(f"An error occurred: {e}")
+        return []
 
 if __name__ == "__main__":
-    run_autonomous_agent()
+    fetch_hdhub_style_movies()
