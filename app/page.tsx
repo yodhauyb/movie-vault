@@ -1,65 +1,113 @@
-import Image from "next/image";
+// FILE: frontend/app/page.tsx
+// YE MAIN HOME PAGE HAI JAHAN SAARI MOVIES AAYENGI
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+import Navbar from "../components/Navbar";
+import Hero from "../components/Hero";
+import MovieCard from "../components/MovieCard";
+
+interface TMDBMovie {
+  id: number;
+  title?: string;
+  original_title?: string;
+  release_date?: string;
+  poster_path?: string;
+  overview?: string;
+  backdrop_path?: string;
+}
+
+async function getTrendingIndianMovies() {
+  const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_origin_country=IN&language=en-US&sort_by=popularity.desc`,
+      { next: { revalidate: 3600 } }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.results || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+async function getTopRatedIndianMovies() {
+  const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_origin_country=IN&language=en-US&sort_by=vote_average.desc&vote_count.gte=100`,
+      { next: { revalidate: 3600 } }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.results || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+export default async function Home() {
+  const [trendingMovies, topRatedMovies] = await Promise.all([
+    getTrendingIndianMovies(),
+    getTopRatedIndianMovies(),
+  ]);
+
+  if (!trendingMovies || trendingMovies.length === 0) {
+    return (
+      <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
+        <Navbar />
+        <h1 className="text-2xl mt-20 text-red-500">VPN/Network check karein.</h1>
       </main>
-    </div>
+    );
+  }
+
+  const heroMovie = trendingMovies[0];
+  const featuredMovie = {
+    id: heroMovie.id,
+    title: heroMovie.title || heroMovie.original_title || "Unknown Title",
+    description: heroMovie.overview || "No description available.",
+    releaseYear: heroMovie.release_date ? parseInt(heroMovie.release_date.split('-')[0]) : 2024,
+    categories: ["Indian", "Trending"], 
+    imageUrl: heroMovie.backdrop_path 
+      ? `https://image.tmdb.org/t/p/original${heroMovie.backdrop_path}` 
+      : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=2025&auto=format&fit=crop"
+  };
+
+  return (
+    <main className="min-h-screen bg-black text-white pb-20">
+      <Navbar />
+      <Hero movie={featuredMovie} />
+      
+      <section className="max-w-7xl mx-auto px-4 py-8">
+        <h2 className="text-2xl font-bold mb-6 border-l-4 border-red-600 pl-3">🔥 Trending in India</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {trendingMovies.slice(1, 9).map((movie: TMDBMovie) => (
+            <MovieCard 
+              key={movie.id}
+              id={movie.id} 
+              title={movie.title || movie.original_title || "Unknown"}
+              year={movie.release_date ? parseInt(movie.release_date.split('-')[0]) : 2024}
+              imageUrl={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : ""}
+              category="Trending"
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 py-8">
+        <h2 className="text-2xl font-bold mb-6 border-l-4 border-yellow-500 pl-3">⭐ Top Rated All Time</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {topRatedMovies.slice(0, 8).map((movie: TMDBMovie) => (
+            <MovieCard 
+              key={movie.id}
+              id={movie.id}
+              title={movie.title || movie.original_title || "Unknown"}
+              year={movie.release_date ? parseInt(movie.release_date.split('-')[0]) : 2024}
+              imageUrl={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : ""}
+              category="Top Rated"
+            />
+          ))}
+        </div>
+      </section>
+    </main>
   );
 }
