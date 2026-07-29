@@ -57,26 +57,6 @@ def save_to_json(movie_id, telegram_link):
     with open(JSON_FILE_PATH, "w") as f:
         json.dump(data, f, indent=4)
 
-def is_smart_match(official_title, combined_data):
-    """
-    🧠 SMART MATCHER: Yeh poora exact lamba naam check karne ke bajaye 
-    movie ke shuru ke 1-2 important words (keywords) check karta hai.
-    """
-    # Sirf alphanumeric words nikalna (special characters hata dena)
-    clean_title = re.sub(r'[^a-zA-Z0-9\s]', '', official_title.lower())
-    title_words = clean_title.split()
-    
-    if not title_words:
-        return False
-        
-    # Agar naam lamba hai (jaise "Pushpa 2 The Rule"), toh pehle 2 words ("pushpa", "2") dhundho
-    words_to_match = title_words[:2] 
-    
-    # Check karo ki kya yeh important words website ki link mein hain
-    match_count = sum(1 for word in words_to_match if word in combined_data)
-    
-    return match_count == len(words_to_match)
-
 def process_single_movie(movie_title, page, is_json_mode):
     result = {"title": movie_title, "status": "failed", "tmdb_id": None, "link": None, "error": None}
     
@@ -99,13 +79,12 @@ def process_single_movie(movie_title, page, is_json_mode):
         search_url = f"{base_domain}/?s={movie_title.replace(' ', '+')}"
         if not is_json_mode: print(f"🌐 Searching: {search_url}")
         
+        # Timeout aur wait wapas normal kar diya Cloudflare bypass ke liye
         page.goto(search_url, timeout=60000) 
         page.wait_for_timeout(5000) 
         
         movie_post_url = None
-        
-        # Check direct redirect
-        if "?s=" not in page.url and is_smart_match(movie_title, page.url.lower()):
+        if "?s=" not in page.url and movie_title.lower() in page.url.lower():
             movie_post_url = page.url
         else:
             soup = BeautifulSoup(page.content(), 'html.parser')
@@ -120,8 +99,7 @@ def process_single_movie(movie_title, page, is_json_mode):
                 
                 combined_data = f"{text} {title_attr} {alt_attr} {url.lower()}"
                 
-                # 🎯 NAYA LOGIC YAHAN HAI
-                if is_smart_match(movie_title, combined_data):
+                if movie_title.lower() in combined_data:
                     movie_post_url = url
                     if not movie_post_url.startswith("http"):
                         parsed_uri = urlparse(page.url)
@@ -133,7 +111,7 @@ def process_single_movie(movie_title, page, is_json_mode):
             result["error"] = "Movie not on HDHub4u"
             return result
 
-        if not is_json_mode: print(f"🔍 Extracting Hubcloud link from: {movie_post_url}")
+        if not is_json_mode: print(f"🔍 Extracting Hubcloud link...")
         page.goto(movie_post_url, timeout=60000)
         page.wait_for_timeout(5000)
         
@@ -189,6 +167,7 @@ def main():
     results = []
 
     with sync_playwright() as p:
+        # 🛑 Cloudflare Fix: headless ko False kar diya
         browser = p.chromium.launch(headless=False)
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
@@ -200,6 +179,7 @@ def main():
             results.append(res)
             
             if i < len(movie_list) - 1:
+                # Anti-ban sleep wapas 5 seconds kiya hai taaki safe rahe
                 if not args.json: print("⏳ Anti-ban wait (5 sec)...")
                 time.sleep(5)
                 
