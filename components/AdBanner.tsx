@@ -1,41 +1,27 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import Script from "next/script";
 
-export default function AdBanner() {
-  const bannerRef = useRef<HTMLDivElement>(null);
+interface AdBannerProps {
+  zoneId?: string;
+}
 
-  useEffect(() => {
-    // Agar ad pehle se load ho chuka hai, toh dobara load na kare
-    if (!bannerRef.current || bannerRef.current.firstChild) return;
-
-    // Ad Options script banana
-    const conf = document.createElement("script");
-    conf.type = "text/javascript";
-    conf.innerHTML = `
-      atOptions = {
-        'key' : '58f792a62d4cb0f52a80f6dab3cc1041',
-        'format' : 'iframe',
-        'height' : 250,
-        'width' : 300,
-        'params' : {}
-      };
-    `;
-
-    // Invoke script banana
-    const script = document.createElement("script");
-    script.type = "text/javascript";
-    script.src = "https://www.highperformanceformat.com/58f792a62d4cb0f52a80f6dab3cc1041/invoke.js";
-    script.async = true;
-
-    // Dono scripts ko div ke andar daalna
-    bannerRef.current.appendChild(conf);
-    bannerRef.current.appendChild(script);
-  }, []);
+export default function AdBanner({ zoneId = "default" }: AdBannerProps) {
+  const uniqueUrl = `/ad.html?zone=${zoneId}&v=1`;
 
   return (
-    <div className="flex justify-center items-center w-full py-4 bg-transparent overflow-hidden">
-      <div ref={bannerRef} />
+    <div className="flex flex-col items-center justify-center w-full overflow-hidden">
+      <Script 
+        src="https://pl30599095.effectivecpmnetwork.com/87/80/5f/87805ff623c1e512ff9b550d915beb68.js" 
+        strategy="lazyOnload" 
+      />
+      <iframe 
+        src={uniqueUrl} 
+        width="468" 
+        height="60" 
+        className="border border-white/10 rounded-lg shadow-lg bg-black/50"
+        scrolling="no"
+      />
     </div>
   );
 }

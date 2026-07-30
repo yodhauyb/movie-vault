@@ -1,221 +1,134 @@
-import argparse
-import json
 import os
+import json
 import time
+import re
 import requests
-import subprocess
-from urllib.parse import urlparse
-from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
-JSON_FILE_PATH = os.path.join(BASE_DIR, "data", "telegramlink.json")
-FAILED_LOG_PATH = os.path.join(BASE_DIR, "failed_movies.txt")
-TMDB_API_KEY = "f7ab0059bfd1e541fa8b3fb3d709517a" 
+# ================= Configuration =================
+# ================= Configuration =================
+TMDB_API_KEY = "f7ab0059bfd1e541fa8b3fb3d709517a"
+HDHUB4U_DOMAIN = "https://new3.hdhub4u.cl"
+JSON_FILE = "data/telegramlink.json"
+MOVIES_FILE = "movies.txt"
+# =================================================
+# =================================================
 
-def get_existing_ids():
-    if os.path.exists(JSON_FILE_PATH):
-        try:
-            with open(JSON_FILE_PATH, "r") as f:
-                return set(json.load(f).keys())
-        except json.JSONDecodeError:
-            return set()
-    return set()
+def load_json():
+    if os.path.exists(JSON_FILE):
+        with open(JSON_FILE, "r", encoding="utf-8") as f:
+            try:
+                return json.load(f)
+            except:
+                return {}
+    return {}
 
-def get_tmdb_info(title, silent=False):
-    if not silent:
-        print(f"🧠 TMDB API par '{title}' search ki ja rahi hai...")
-    
-    url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={title.replace(' ', '+')}&language=en-US"
-    
+def save_json(data):
+    os.makedirs(os.path.dirname(JSON_FILE), exist_ok=True)
+    with open(JSON_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+
+def get_clean_name(movie_name):
+    # Saal aur brackets hatane ka smart logic taaki KGF aur RRR jaise naam TMDB pe mil jayein
+    clean_name = re.sub(r'\(?\b(19\d{2}|20\d{2})\b\)?', '', movie_name).strip()
+    return clean_name
+
+def get_tmdb_id(movie_name):
+    clean_name = get_clean_name(movie_name)
+    url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={clean_name}"
     try:
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
-            data = response.json()
-            if data.get('results'):
-                for item in data['results']:
-                    if item['media_type'] in ['movie', 'tv']:
-                        return str(item['id']), item['media_type']
-    except Exception as e:
-        if not silent: print(f"⚠️ TMDB API Error: {e}")
-        
-    return None, None
-
-def save_to_json(prefixed_id, final_link):
-    data = {}
-    data_folder = os.path.join(BASE_DIR, "data")
-    os.makedirs(data_folder, exist_ok=True) 
-    
-    if os.path.exists(JSON_FILE_PATH):
-        try:
-            with open(JSON_FILE_PATH, "r") as f:
-                data = json.load(f)
-        except json.JSONDecodeError:
-            pass
-            
-    data[prefixed_id] = final_link
-    
-    with open(JSON_FILE_PATH, "w") as f:
-        json.dump(data, f, indent=4)
-
-def auto_deploy_to_vercel():
-    print("\n🚀 Uploading changes to GitHub / Vercel...")
-    try:
-        subprocess.run(["git", "add", JSON_FILE_PATH], check=True, stdout=subprocess.DEVNULL)
-        subprocess.run(["git", "commit", "-m", "🤖 Updated all seasons links"], check=True, stdout=subprocess.DEVNULL)
-        subprocess.run(["git", "push"], check=True, stdout=subprocess.DEVNULL)
-        print("✅ Successfully deployed! Website par live ho gayi hai.")
+            results = response.json().get("results", [])
+            if results:
+                return f"movie_{results[0]['id']}"
     except Exception:
-        print("⚠️ Auto-deploy fail ho gaya.")
-
-def process_single_title(title, page, existing_ids, is_json_mode):
-    result = {"title": title, "status": "failed", "tmdb_id": None, "type": None, "link": None, "error": None}
-    
-    if not is_json_mode:
-        print(f"\n{'='*50}\n🚀 Processing: {title}\n{'='*50}")
-
-    try:
-        tmdb_id, media_type = get_tmdb_info(title, silent=is_json_mode)
-        if not tmdb_id:
-            if not is_json_mode: print("❌ TMDB ID nahi mili. Skipping.")
-            result["error"] = "TMDB ID not found"
-            return result
-            
-        prefixed_id = f"{media_type}_{tmdb_id}"
-        result["tmdb_id"] = tmdb_id
-        result["type"] = media_type
-        
-        if not is_json_mode: 
-            print(f"✅ Found {media_type.upper()} | ID: {prefixed_id}")
-
-        base_domain = "https://new3.hdhub4u.cl"
-        search_url = f"{base_domain}/?s={title.replace(' ', '+')}"
-        if not is_json_mode: print(f"🌐 Searching HDHub4u: {search_url}")
-        
-        page.goto(search_url, timeout=60000, wait_until="domcontentloaded") 
-        page.wait_for_timeout(3000) 
-        
-        matching_posts = []
-        soup = BeautifulSoup(page.content(), 'html.parser')
-        
-        # 🎯 SAare seasons ke posts ko catch karega (Jaise Squid Game S1, S2 dono)
-        for post in soup.find_all('a', href=True):
-            url = post['href']
-            if any(x in url for x in ['catimages', '.jpg', '.png', '/tag/', '?s=']):
-                continue
-                
-            text = post.get_text(strip=True).lower()
-            title_attr = post.get('title', '').lower()
-            
-            # Agar naam match kar raha hai
-            if title.lower() in text or title.lower() in title_attr:
-                if not url.startswith("http"):
-                    parsed_uri = urlparse(page.url)
-                    url = f"{parsed_uri.scheme}://{parsed_uri.netloc}{url}"
-                if url not in matching_posts:
-                    matching_posts.append(url)
-
-        if not matching_posts:
-            if not is_json_mode: print("⚠️ Not found on HDHub4u.")
-            result["error"] = "Not on HDHub4u"
-            return result
-
-        if not is_json_mode: print(f"🔍 Found {len(matching_posts)} matching posts (Seasons/Prints). Extracting links...")
-        
-        all_hubcloud_links = []
-        
-        # Har ek post (Season 1, Season 2) ke andar jayega aur wahan se Hubcloud link nikalega
-        for post_url in matching_posts:
-            try:
-                page.goto(post_url, timeout=45000, wait_until="domcontentloaded")
-                page.wait_for_timeout(2000)
-                
-                post_soup = BeautifulSoup(page.content(), 'html.parser')
-                for link in post_soup.find_all('a', href=True):
-                    href = link['href']
-                    link_text = link.get_text(strip=True).lower()
-                    
-                    if "hubcloud" in link_text or "drive" in link_text or "hubcloud" in href or "download" in link_text:
-                        if href != post_url and not href.startswith('#'):
-                            if href not in all_hubcloud_links:
-                                all_hubcloud_links.append(href)
-            except Exception:
-                continue # Agar koi post slow ho toh agle par chala jayega
-                            
-        # Agar Hubcloud links nahi mile toh direct post ke links hi daal do
-        final_links_pool = all_hubcloud_links if all_hubcloud_links else matching_posts
-        
-        # Sabhi links ko ' | ' se jod denge taaki website par alag-alag buttons ban sakein
-        final_link = " | ".join(final_links_pool)
-            
-        save_to_json(prefixed_id, final_link)
-        existing_ids.add(prefixed_id) 
-        
-        result["status"] = "success"
-        result["link"] = final_link
-        if not is_json_mode: print(f"💾 [Saved] {prefixed_id} -> {len(final_links_pool)} Total Download/Season Links Saved!")
-        
-    except Exception as e:
-        result["error"] = str(e)
-        if not is_json_mode: print(f"❌ Error: {e}")
-        
-    return result
+        pass
+    return None
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("movies", nargs="*", help="Movie/Series names")
-    parser.add_argument("--file", type=str)
-    parser.add_argument("--json", action="store_true")
-    parser.add_argument("--no-deploy", action="store_true")
-    args = parser.parse_args()
-
-    title_list = []
-    if args.movies:
-        title_list.extend(args.movies)
-    if args.file:
-        try:
-            with open(args.file, "r") as f:
-                title_list.extend([line.strip() for line in f.readlines() if line.strip()])
-        except Exception as e:
-            if not args.json: print(f"❌ File read error: {e}")
-            return
-
-    if not title_list:
+    print("="*60)
+    print("🕵️  ULTIMATE JASOOS BOT 2.0 - STARTING MISSION!")
+    print(f"🌐 Target Site: {HDHUB4U_DOMAIN}")
+    print("="*60)
+    
+    if not os.path.exists(MOVIES_FILE):
+        print(f"❌ '{MOVIES_FILE}' file nahi mili! Pehle get_1000_movies.py run karo.")
         return
+        
+    with open(MOVIES_FILE, "r", encoding="utf-8") as f:
+        movies_list = [line.strip() for line in f.readlines() if line.strip()]
+        
+    vault_data = load_json()
+    added_count = 0
 
-    results = []
-    failed_titles = []
-    existing_ids = get_existing_ids()
-    new_added = False
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-        page = context.new_page()
-
-        for i, title in enumerate(title_list):
-            res = process_single_title(title, page, existing_ids, args.json)
-            results.append(res)
+    options = Options()
+    options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.page_load_strategy = 'eager'
+    
+    print("🚀 Firing up 'Chrome for Testing'... (Ab fatafat khulega!)\n")
+    
+    try:
+        # Standard Selenium 4 implementation (Bina kisi extra manager library ke)
+        driver = webdriver.Chrome(options=options)
+    except Exception as e:
+        print(f"❌ Chrome Driver start hone mein error: {e}")
+        return
+        
+    for movie_name in movies_list:
+        try:
+            print(f"🔍 Processing: {movie_name}")
             
-            if res["status"] == "success":
-                new_added = True
-            elif res["status"] == "failed":
-                failed_titles.append(title)
+            tmdb_id = get_tmdb_id(movie_name)
             
-            if res["status"] != "skipped" and i < len(title_list) - 1:
-                time.sleep(3)
+            if not tmdb_id:
+                print(f"  ❌ TMDB par nahi mili: {movie_name}\n")
+                continue
                 
-        browser.close()
+            if tmdb_id in vault_data:
+                print(f"  ⚡ Pehle se Vault mein maujood hai: {movie_name}\n")
+                continue
+                
+            search_query = get_clean_name(movie_name).replace(' ', '+')
+            search_url = f"{HDHUB4U_DOMAIN}/search/{search_query}"
+            
+            driver.set_page_load_timeout(30)
+            driver.get(search_url)
+            
+            links = driver.find_elements(By.TAG_NAME, "a")
+            movie_link = None
+            for link in links:
+                href = link.get_attribute("href")
+                if href and "/search/" not in href and search_query.split('+')[0].lower() in href.lower():
+                    movie_link = href
+                    break
+                    
+            if movie_link:
+                vault_data[tmdb_id] = movie_link
+                save_json(vault_data)
+                added_count += 1
+                print("  ✅ SUCCESS:")
+                print(f"  🔗 Link: {movie_link}\n")
+            else:
+                print("  ❌ FAILED: HDHub4u par valid link nahi mili\n")
+                
+            time.sleep(2)
+            
+        except Exception as e:
+            # Bot ko marne se bachane wala 'continue' block
+            print(f"  ❌ Error aayi '{movie_name}' par, but bot rukega nahi! Agli movie pe jaa raha hoon...")
+            time.sleep(3)
+            continue 
 
-    if failed_titles:
-        with open(FAILED_LOG_PATH, "w") as f:
-            for ft in failed_titles: f.write(f"{ft}\n")
-
-    if not args.json:
-        print("\n🎉 Bulk Processing Complete!")
-        print(f"📊 Stats: {sum(1 for r in results if r['status'] == 'success')} added, {len(failed_titles)} failed.")
-        if new_added and not args.no_deploy:
-            auto_deploy_to_vercel()
+    driver.quit()
+    print("="*60)
+    print(f"🎉 MISSION COMPLETE! Total {added_count} nayi movies aapke Vault mein add hui.")
+    print("="*60)
 
 if __name__ == "__main__":
     main()
