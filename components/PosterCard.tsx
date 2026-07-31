@@ -1,115 +1,88 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 
-interface MovieItem {
+interface Movie {
   id: string;
   title: string;
   year: string;
   type: string;
   link: string;
   poster_url: string | null;
+  isNew?: boolean;
 }
 
-export default function PosterCard({ movie }: { movie: MovieItem }) {
-  const [poster, setPoster] = useState<string | null>(null);
+interface PosterCardProps {
+  movie: Movie;
+}
 
-  useEffect(() => {
-    let isMounted = true;
+export default function PosterCard({ movie }: PosterCardProps) {
+  const cleanTitle = movie.title.trim();
+  const encodedTitle = encodeURIComponent(cleanTitle);
 
-    const fetchPoster = async () => {
-      try {
-        // Delay thoda aur badha diya hai (0.5 se 3.5 seconds) taaki Proxy block na kare
-        const delay = Math.floor(Math.random() * 3000) + 500;
-        await new Promise(resolve => setTimeout(resolve, delay));
+  // 🔥 अगर Python स्क्रिप्ट से असली पोस्टर आया है तो वो दिखाओ, वरना लाल वाला फॉलबैक दिखाओ
+  const posterSrc = movie.poster_url || `https://placehold.co/500x750/0b0f19/ef4444.png?text=${encodedTitle}`;
 
-        if (!isMounted) return;
-
-        const apiKey = "f7ab0059bfd1e541fa8b3fb3d709517a"; 
-        
-        const cleanTitle = movie.title
-          .replace(/(hd|1080p|720p|4k|hindi dub|hindi|movie)/gi, '')
-          .trim();
-
-        const targetUrl = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(cleanTitle)}`;
-        
-        // Proxy change kar di hai (corsproxy.io zyada stable hai)
-        const searchUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-        
-        const res = await fetch(searchUrl);
-        
-        if (res.ok) {
-          const data = await res.json();
-          
-          if (!isMounted) return;
-
-          if (data.results && data.results.length > 0) {
-            const validResult = data.results.find((r: { poster_path?: string | null }) => r.poster_path != null);
-            
-            if (validResult) {
-              const tmdbImageUrl = `image.tmdb.org/t/p/w500${validResult.poster_path}`;
-              setPoster(`https://wsrv.nl/?url=${tmdbImageUrl}`);
-            }
-          }
-        }
-      } catch (error) {
-        // Silent error handling taaki terminal spam na ho
-      }
-    };
-
-    if (movie.title) {
-      fetchPoster();
-    }
-
-    return () => { isMounted = false; };
-  }, [movie.title]);
-
-  // Niche ka return (...) wala pura HTML UI same rahega
   return (
-    <div className="bg-[#1a1c29] border border-white/5 rounded-xl overflow-hidden flex flex-col hover:scale-105 transition-transform duration-300 shadow-lg">
+    <div className="group relative bg-[#0e1420] border border-white/10 rounded-2xl overflow-hidden shadow-2xl hover:border-red-500/50 hover:shadow-red-500/20 transition-all duration-300 flex flex-col justify-between">
       
-      <div className="h-64 sm:h-72 bg-slate-800 relative flex items-center justify-center">
-        {poster ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img 
-            src={poster} 
-            alt={movie.title} 
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-indigo-900/50 to-slate-900 flex items-center justify-center text-center p-4">
-            <span className="text-slate-300 font-bold text-sm leading-tight drop-shadow-md">
-              {movie.title}
-            </span>
-          </div>
+      {/* Poster Container */}
+      <div className="relative aspect-[2/3] w-full overflow-hidden bg-slate-950 flex items-center justify-center">
+        
+        <img 
+          src={posterSrc}
+          alt={cleanTitle}
+          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            // अगर बाय चांस TMDB का लिंक टूट जाए, तो यह सुंदर लाल फॉलबैक दिखाएगा
+            target.src = `https://placehold.co/500x750/0b0f19/ef4444.png?text=${encodedTitle}`;
+          }}
+        />
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f19] via-transparent to-black/40 pointer-events-none"></div>
+
+        {/* NEW 🔥 Badge */}
+        {movie.isNew && (
+          <span className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-lg tracking-wider uppercase animate-pulse z-10">
+            NEW 🔥
+          </span>
         )}
+
+        {/* Type Badge */}
+        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-slate-200 text-[10px] font-semibold px-2 py-0.5 rounded-md border border-white/10 z-10">
+          {movie.type}
+        </div>
       </div>
 
-      <div className="p-4 flex flex-col flex-grow justify-between gap-4">
+      {/* Content & Action */}
+      <div className="p-4 flex flex-col flex-grow justify-between bg-[#121824]/90 backdrop-blur-md border-t border-white/5">
         <div>
-          <h3 className="text-white font-bold truncate" title={movie.title}>
-            {movie.title}
+          <h3 className="font-bold text-sm md:text-base text-white line-clamp-1 group-hover:text-red-500 transition-colors" title={cleanTitle}>
+            {cleanTitle}
           </h3>
-          <p className="text-xs text-emerald-400 mt-1 font-medium flex items-center gap-1">
+          <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
             <span>📅 {movie.year}</span>
-            <span className="text-slate-500">•</span>
+            <span>•</span>
             <span>{movie.type}</span>
-          </p>
+          </div>
         </div>
 
-        <a 
-          href={movie.link} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-lg transition-colors shadow-md text-sm cursor-pointer"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Download / Watch
-        </a>
+        {/* Action Button */}
+        <div className="mt-3">
+          <a
+            href={movie.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all shadow-lg shadow-red-600/20 active:scale-95 cursor-pointer"
+          >
+            <span>▶ Watch / Download</span>
+          </a>
+        </div>
       </div>
+
     </div>
   );
 }

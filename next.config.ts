@@ -1,16 +1,16 @@
-import type { NextConfig } from 'next';
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
+        hostname: 'image.tmdb.org',
       },
       {
         protocol: 'https',
-        hostname: 'image.tmdb.org', // Ye line TMDB images ko allow karegi
-      },
+        hostname: 'm.media-amazon.com', // OMDb API के लिए (अगर भविष्य में यूज़ किया)
+      }
     ],
   },
 };
