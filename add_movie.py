@@ -2,18 +2,13 @@ import os
 import json
 import time
 import re
-import requests
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
+import cloudscraper
+from bs4 import BeautifulSoup
 
 # ================= Configuration =================
-# ================= Configuration =================
-TMDB_API_KEY = "f7ab0059bfd1e541fa8b3fb3d709517a"
-HDHUB4U_DOMAIN = "https://new3.hdhub4u.cl"
+HDHUB4U_DOMAIN = "https://new3.hdhub4u.cl" 
 JSON_FILE = "data/telegramlink.json"
 MOVIES_FILE = "movies.txt"
-# =================================================
 # =================================================
 
 def load_json():
@@ -31,31 +26,17 @@ def save_json(data):
         json.dump(data, f, indent=4)
 
 def get_clean_name(movie_name):
-    # Saal aur brackets hatane ka smart logic taaki KGF aur RRR jaise naam TMDB pe mil jayein
     clean_name = re.sub(r'\(?\b(19\d{2}|20\d{2})\b\)?', '', movie_name).strip()
     return clean_name
 
-def get_tmdb_id(movie_name):
-    clean_name = get_clean_name(movie_name)
-    url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={clean_name}"
-    try:
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            results = response.json().get("results", [])
-            if results:
-                return f"movie_{results[0]['id']}"
-    except Exception:
-        pass
-    return None
-
 def main():
     print("="*60)
-    print("🕵️  ULTIMATE JASOOS BOT 2.0 - STARTING MISSION!")
+    print("🕵️  ULTIMATE JASOOS BOT 10.0 (Ultra-Flexible Matcher) - STARTING!")
     print(f"🌐 Target Site: {HDHUB4U_DOMAIN}")
     print("="*60)
     
     if not os.path.exists(MOVIES_FILE):
-        print(f"❌ '{MOVIES_FILE}' file nahi mili! Pehle get_1000_movies.py run karo.")
+        print(f"❌ '{MOVIES_FILE}' file nahi mili!")
         return
         
     with open(MOVIES_FILE, "r", encoding="utf-8") as f:
@@ -64,70 +45,91 @@ def main():
     vault_data = load_json()
     added_count = 0
 
-    options = Options()
-    options.add_argument("--headless=new")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.page_load_strategy = 'eager'
+    scraper = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
     
-    print("🚀 Firing up 'Chrome for Testing'... (Ab fatafat khulega!)\n")
-    
-    try:
-        # Standard Selenium 4 implementation (Bina kisi extra manager library ke)
-        driver = webdriver.Chrome(options=options)
-    except Exception as e:
-        print(f"❌ Chrome Driver start hone mein error: {e}")
-        return
-        
     for movie_name in movies_list:
         try:
             print(f"🔍 Processing: {movie_name}")
             
-            tmdb_id = get_tmdb_id(movie_name)
+            safe_id = "movie_" + re.sub(r'[^a-zA-Z0-9]', '_', movie_name.lower())
             
-            if not tmdb_id:
-                print(f"  ❌ TMDB par nahi mili: {movie_name}\n")
+            if safe_id in vault_data:
+                print(f"  ⚡ Pehle se Vault mein hai: {movie_name}\n")
                 continue
                 
-            if tmdb_id in vault_data:
-                print(f"  ⚡ Pehle se Vault mein maujood hai: {movie_name}\n")
-                continue
-                
-            search_query = get_clean_name(movie_name).replace(' ', '+')
-            search_url = f"{HDHUB4U_DOMAIN}/search/{search_query}"
+            clean_name = get_clean_name(movie_name)
             
-            driver.set_page_load_timeout(30)
-            driver.get(search_url)
+            # स्मार्ट सर्च क्वेरीज़ बनाएंगे
+            search_queries = [clean_name.replace(' ', '+')]
+            words = [w.lower() for w in clean_name.split() if len(w) > 2] # सिर्फ 2 से बड़े काम के शब्द लेंगे
             
-            links = driver.find_elements(By.TAG_NAME, "a")
+            if len(words) > 0:
+                search_queries.append(words[0])
+            if len(words) > 1:
+                search_queries.append(f"{words[0]}+{words[1]}")
+
             movie_link = None
-            for link in links:
-                href = link.get_attribute("href")
-                if href and "/search/" not in href and search_query.split('+')[0].lower() in href.lower():
-                    movie_link = href
-                    break
+            
+            for query in search_queries:
+                search_url = f"{HDHUB4U_DOMAIN}/?s={query}"
+                response = scraper.get(search_url, timeout=12)
+                
+                if response.status_code != 200:
+                    continue
+
+                soup = BeautifulSoup(response.text, 'html.parser')
+                all_links = soup.find_all('a', href=True)
+                
+                found = False
+                for a_tag in all_links:
+                    href = a_tag['href']
+                    lower_href = href.lower()
                     
+                    # फालतू लिंक्स को इग्नोर करो
+                    ignore_list = ['/search/', '/category/', '/tag/', '/page/', '/author/', '/genre/', '/year/', 'wp-', 'telegram', 'whatsapp']
+                    if any(ignore in lower_href for ignore in ignore_list):
+                        continue
+                    
+                    # 🔥 ULTRA-FLEXIBLE MATCHING: 
+                    # अगर मूवी के नाम के कम से कम 2 बड़े शब्द लिंक में मौजूद हैं, तो इसे असली मूवी लिंक मान लो!
+                    matched_words_count = 0
+                    for w in words:
+                        if w in lower_href:
+                            matched_words_count += 1
+                    
+                    # अगर नाम में 2 से ज़्यादा शब्द हैं और कम से कम 2 मैच हो गए, या छोटा नाम है और 1 मैच हो गया
+                    threshold = 2 if len(words) >= 2 else 1
+                    if matched_words_count >= threshold:
+                        if href.startswith('/'):
+                            movie_link = f"{HDHUB4U_DOMAIN.rstrip('/')}{href}"
+                        else:
+                            movie_link = href
+                        found = True
+                        break
+                
+                if found:
+                    break
+                
+                time.sleep(1)
+
             if movie_link:
-                vault_data[tmdb_id] = movie_link
+                vault_data[safe_id] = movie_link
                 save_json(vault_data)
                 added_count += 1
                 print("  ✅ SUCCESS:")
                 print(f"  🔗 Link: {movie_link}\n")
             else:
-                print("  ❌ FAILED: HDHub4u par valid link nahi mili\n")
+                print("  ❌ FAILED: Site par link nahi mili.\n")
                 
-            time.sleep(2)
+            time.sleep(1.5) 
             
         except Exception as e:
-            # Bot ko marne se bachane wala 'continue' block
-            print(f"  ❌ Error aayi '{movie_name}' par, but bot rukega nahi! Agli movie pe jaa raha hoon...")
-            time.sleep(3)
+            print(f"  ❌ Error: {str(e)}\n")
+            time.sleep(2)
             continue 
 
-    driver.quit()
     print("="*60)
-    print(f"🎉 MISSION COMPLETE! Total {added_count} nayi movies aapke Vault mein add hui.")
+    print(f"🎉 MISSION COMPLETE! Total {added_count} nayi movies add hui.")
     print("="*60)
 
 if __name__ == "__main__":
