@@ -4,7 +4,8 @@ import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import telegramLinks from "@/data/telegramlink.json";
 import AdBanner from "@/components/AdBanner"; 
-import { Search, Film, Tv, Star, Play, Home, User, ArrowRight } from "lucide-react";
+import SquareAd from "@/components/SquareAd"; 
+import { Search, Film, Tv, Star, Play, Home, ArrowRight, X } from "lucide-react";
 
 interface MovieItem {
   id: string;
@@ -25,10 +26,8 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState("Home");
   const [visibleCount, setVisibleCount] = useState(18);
 
-  // 🔥 तेरा असली Direct Link यहाँ सेट हो गया है!
   const DIRECT_AD_LINK = "https://www.effectivecpmnetwork.com/zcavyp0r?key=f0cab9cdce909f11003571d769eaef2e"; 
 
-  // 🔥 मूवी पर क्लिक करते ही एड नए टैब में खुलेगा
   const handleMovieClick = () => {
     if(DIRECT_AD_LINK) {
       window.open(DIRECT_AD_LINK, '_blank');
@@ -115,10 +114,10 @@ export default function HomePage() {
   const featuredMovie = movies[0];
 
   return (
-    <div className="min-h-screen flex bg-[#07090e] text-white font-[Outfit] selection:bg-red-500/30">
+    <div className="min-h-screen flex bg-[#07090e] text-white font-[Outfit] selection:bg-red-500/30 w-full overflow-x-hidden">
       
-      {/* 🖥️ DESKTOP SIDEBAR */}
-      <aside className="hidden md:flex fixed top-0 left-0 h-screen w-72 flex-col justify-between border-r border-white/5 glass-sidebar p-6 z-40">
+      {/* 🖥️ DESKTOP SIDEBAR (सिर्फ बड़ी स्क्रीन यानी लैपटॉप/पीसी पर ही दिखेगी, फोन पर हमेशा गायब रहेगी) */}
+      <aside className="hidden lg:flex fixed top-0 left-0 h-screen w-72 flex-col justify-between border-r border-white/5 glass-sidebar p-6 z-40 overflow-hidden">
         <div>
           <h1 className="text-4xl font-black tracking-tighter text-red-600 mb-10 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]">
             VAULT
@@ -158,31 +157,39 @@ export default function HomePage() {
           </nav>
         </div>
 
-        <div className="text-xs text-gray-500 px-2">
-          <p>© 2026 Movie Vault</p>
-          <p>All rights reserved.</p>
+        <div>
+          <div className="mb-6 w-full flex justify-center bg-white/5 rounded-xl border border-white/10 overflow-hidden p-2">
+             <AdBanner />
+          </div>
+
+          <div className="text-xs text-gray-500 px-2">
+            <p>© 2026 Movie Vault</p>
+            <p>All rights reserved.</p>
+          </div>
         </div>
       </aside>
 
-      {/* 📱 MAIN CONTENT AREA */}
-      <main className="flex-1 md:ml-72 relative pb-24 md:pb-16 min-h-screen">
+      {/* 📱 MAIN CONTENT AREA (फोन पर यह 100% फुल विड्थ रहेगा) */}
+      <main className="w-full lg:ml-72 flex-1 relative pb-28 md:pb-16 min-h-screen">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-red-600/10 blur-[150px] rounded-full pointer-events-none -z-10" />
 
-        <div className="max-w-7xl mx-auto px-4 md:px-10 pt-8 md:pt-12">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-10 pt-6 md:pt-12">
           
-          <div className="flex md:hidden items-center justify-between mb-6">
-            <h1 className="text-2xl font-black text-red-600">VAULT</h1>
-            <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10">
-              <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200" alt="Profile" className="w-full h-full object-cover" />
+          {/* 📱 MOBILE TOP BAR (VAULT + Krishna Name) */}
+          <div className="flex items-center justify-between mb-4 w-full">
+            <h1 className="text-2xl font-black text-red-600 tracking-tighter">VAULT</h1>
+            <div className="px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-red-500 shadow-[0_0_10px_rgba(220,38,38,0.2)]">
+              Krishna
             </div>
           </div>
 
-          <div className="md:hidden flex overflow-x-auto gap-3 pb-4 mb-6 snap-x hide-scrollbar">
+          {/* 📱 MOBILE TABS */}
+          <div className="flex overflow-x-auto gap-3 pb-2 mb-3 snap-x hide-scrollbar w-full">
             {['Home', 'Movies', 'Web Series'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => { setActiveTab(tab); setVisibleCount(18); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`snap-start whitespace-nowrap px-6 py-2 rounded-full text-xs font-bold transition-all ${
+                className={`snap-start whitespace-nowrap px-5 py-2 rounded-full text-xs font-bold transition-all ${
                   activeTab === tab 
                   ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.4)]' 
                   : 'glass border border-white/10 text-white'
@@ -193,8 +200,29 @@ export default function HomePage() {
             ))}
           </div>
 
-          <div className="flex justify-center w-full mb-8 relative z-30">
-            <div className="w-full max-w-[728px] overflow-hidden rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center relative min-h-[90px]">
+          {/* 📱 PERMANENT SEARCH BAR */}
+          <div className="relative w-full mb-4">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />
+            <input 
+              type="text" 
+              placeholder="Search movies, web series..." 
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(18); }}
+              className="w-full bg-[#11141d] border border-white/15 rounded-xl pl-10 pr-10 py-3 text-sm focus:outline-none focus:border-red-500 shadow-lg"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* 📱 MOBILE AD BANNER */}
+          <div className="flex justify-center w-full mb-6">
+            <div className="w-full overflow-hidden rounded-xl bg-white/5 border border-white/10 flex items-center justify-center py-2">
               <AdBanner />
             </div>
           </div>
@@ -226,6 +254,11 @@ export default function HomePage() {
               </div>
             </div>
           )}
+
+          {/* 🔥 SQUARE AD BANNER */}
+          <div className="flex justify-center w-full my-10">
+            <SquareAd />
+          </div>
 
           {/* 🎬 GRID SECTION */}
           <div>
@@ -271,7 +304,7 @@ export default function HomePage() {
                 <p className="text-xs text-gray-500 animate-pulse">Loading more movies...</p>
               </div>
             )}
-
+            
             {displayItems.length === 0 && (
               <div className="py-20 text-center text-gray-400">
                 <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
@@ -283,19 +316,24 @@ export default function HomePage() {
       </main>
 
       {/* 📱 MOBILE BOTTOM NAVIGATION */}
-      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-sm glass border border-white/10 rounded-full px-6 py-3.5 flex justify-between items-center z-50 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-sm glass border border-white/15 rounded-full px-8 py-3.5 flex justify-around items-center z-50 shadow-[0_20px_50px_rgba(0,0,0,0.7)] bg-[#0c0e15]/90 backdrop-blur-xl">
         {[
           { name: 'Home', icon: Home, tab: "Home" },
           { name: 'Movies', icon: Film, tab: "Movies" },
-          { name: 'Series', icon: Tv, tab: "Web Series" },
-          { name: 'Profile', icon: User, tab: "Profile" }
+          { name: 'Series', icon: Tv, tab: "Web Series" }
         ].map((item) => (
           <button 
             key={item.name} 
-            onClick={() => { if(item.tab !== "Profile") { setActiveTab(item.tab); setVisibleCount(18); window.scrollTo({ top: 0, behavior: 'smooth' }); }}}
-            className={`flex flex-col items-center gap-1 transition-colors ${activeTab === item.tab ? 'text-red-500' : 'text-gray-400 hover:text-white'}`}
+            onClick={() => { 
+              setActiveTab(item.tab); 
+              setVisibleCount(18); 
+              window.scrollTo({ top: 0, behavior: 'smooth' }); 
+            }}
+            className={`flex flex-col items-center gap-1 transition-colors ${
+              activeTab === item.tab ? 'text-red-500 scale-110' : 'text-gray-400 hover:text-white'
+            }`}
           >
-            <item.icon className={`w-5 h-5 ${activeTab === item.tab ? 'fill-red-500/20' : ''}`} />
+            <item.icon className="w-5 h-5" />
           </button>
         ))}
       </div>
