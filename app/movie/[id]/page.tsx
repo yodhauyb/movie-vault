@@ -1,126 +1,118 @@
 /* eslint-disable @next/next/no-img-element */
-import Navbar from "@/components/Navbar";
-import MovieCard from "@/components/MovieCard";
+import Link from "next/link";
+import telegramLinks from "@/data/telegramlink.json";
+import { ArrowLeft, Star, DownloadCloud, Film } from "lucide-react";
+import SquareAd from "@/components/SquareAd"; 
+import BannerAd468 from "@/components/BannerAd468"; // 🔥 468x60 बैनर इम्पोर्ट कर लिया
 
-const TMDB_API_KEY = "f7ab0059bfd1e541fa8b3fb3d709517a";
-
-// TypeScript ko batana zaroori hai ki movie ka data kaisa hai
-interface TMDBMovie {
-  id: number;
-  title?: string;
-  original_title?: string;
-  release_date?: string;
-  poster_path?: string;
-  vote_average?: number;
-}
+// TypeScript Format
+type TelegramLinkValue = string | { link: string; poster?: string | null; type?: string; year?: string; rating?: number; description?: string };
 
 export default async function MovieDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  
+  const decodedId = decodeURIComponent(id);
+  const vaultData = (telegramLinks as Record<string, TelegramLinkValue>) || {};
+  const movieData = vaultData[decodedId];
 
-  let movie = null;
-  let similarMovies: TMDBMovie[] = []; // Yahan any hata kar TMDBMovie lagaya
-
-  try {
-    const res = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${TMDB_API_KEY}&language=en-US`);
-    if (res.ok) {
-      movie = await res.json();
-    }
-
-    const similarRes = await fetch(`https://api.themoviedb.org/3/movie/${id}/similar?api_key=${TMDB_API_KEY}&language=en-US&page=1`);
-    if (similarRes.ok) {
-      const similarData = await similarRes.json();
-      similarMovies = similarData.results ? similarData.results.slice(0, 10) : [];
-    }
-  } catch (error) {
-    console.error("Error fetching movie:", error);
-  }
-
-  if (!movie) {
+  if (!movieData) {
     return (
-      <main className="min-h-screen bg-black text-white">
-        <Navbar />
-        <div className="flex items-center justify-center h-[80vh]">
-          <h1 className="text-2xl text-red-500 font-bold">⚠️ Movie details not found!</h1>
-        </div>
-      </main>
+      <div className="min-h-screen bg-[#07090e] text-white flex flex-col items-center justify-center p-4">
+        <Film className="w-16 h-16 text-red-500/50 mb-4" />
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Movie Not Found</h1>
+        <p className="text-gray-400 mb-6">Looks like this vault item is missing or removed.</p>
+        <Link href="/" className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow-[0_0_20px_rgba(220,38,38,0.4)]">
+          Go Back Home
+        </Link>
+      </div>
     );
   }
 
+  const url = typeof movieData === 'string' ? movieData : movieData?.link;
+  const poster = typeof movieData === 'string' ? null : movieData?.poster;
+  const rating = typeof movieData === 'object' && movieData?.rating ? movieData.rating : 8.5;
+  const year = typeof movieData === 'object' && movieData?.year ? movieData.year : "2025";
+  const type = typeof movieData === 'object' && movieData?.type === 'series' ? 'Web Series' : 'Movie';
+  
+  const desc = typeof movieData === 'object' && movieData?.description 
+    ? movieData.description 
+    : "Experience this cinematic masterpiece in full HD. Fast download and seamless streaming directly from our Vault servers.";
+
+  const cleanKey = decodedId.replace(/^movie_/, '').replace(/^series_/, '').replace(/_/g, ' ').trim();
+  const title = cleanKey.replace(/\b\w/g, char => char.toUpperCase());
+
+  const posterUrl = poster || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1000";
+
   return (
-    <main className="min-h-screen bg-black text-white pb-20">
-      <Navbar />
+    <div className="min-h-screen bg-[#07090e] text-white font-[Outfit] relative">
       
-      <div className="max-w-7xl mx-auto px-4 py-10">
+      {/* 🌟 Background Blur Effect */}
+      <div className="absolute inset-0 w-full h-[60vh] overflow-hidden -z-10">
+        <img src={posterUrl} alt="bg" className="w-full h-full object-cover opacity-20 blur-[60px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#07090e]/80 to-[#07090e]" />
+      </div>
+
+      <main className="max-w-6xl mx-auto px-4 md:px-8 pt-6 pb-20">
         
-        <div className="flex flex-col md:flex-row gap-10 items-start">
+        {/* Back Button */}
+        <Link href="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition mb-8 bg-white/5 border border-white/10 px-4 py-2 rounded-full backdrop-blur-md">
+          <ArrowLeft className="w-4 h-4" /> Back to Vault
+        </Link>
+
+        <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-start">
           
-          <div className="w-full md:w-1/3 shrink-0">
-            <img 
-              src={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1000"} 
-              alt={movie.title}
-              className="w-full rounded-xl shadow-[0_0_30px_rgba(245,158,11,0.1)] border border-neutral-800"
-            />
+          {/* 🎬 Left Poster */}
+          <div className="w-full sm:w-2/3 md:w-[350px] mx-auto md:mx-0 shrink-0 relative rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 group">
+            <img src={posterUrl} alt={title} className="w-full aspect-[2/3] object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
           </div>
 
-          <div className="w-full md:w-2/3 mt-4 md:mt-0">
-            <h1 className="text-4xl md:text-6xl font-extrabold mb-4 text-white tracking-tight">
-              {movie.title}
+          {/* 📝 Right Details */}
+          <div className="flex-1 pt-4 text-center md:text-left w-full">
+            
+            <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-4">
+              <span className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md text-xs font-bold uppercase tracking-wider">{type}</span>
+              <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-md text-xs font-bold">{year}</span>
+              <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-md text-xs font-bold flex items-center gap-1 text-yellow-400">
+                <Star className="w-3 h-3 fill-yellow-400" /> {rating} / 10
+              </span>
+            </div>
+
+            <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tight drop-shadow-lg">
+              {title}
             </h1>
             
-            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400 mb-8 font-medium">
-              <span className="bg-amber-500/10 text-amber-500 px-4 py-1.5 rounded-full border border-amber-500/20">
-                {movie.release_date?.split('-')[0] || "2026"}
-              </span>
-              <span className="bg-neutral-900 px-4 py-1.5 rounded-full border border-neutral-800">
-                {movie.runtime ? `${movie.runtime} mins` : 'Duration N/A'}
-              </span>
-              <span className="bg-neutral-900 px-4 py-1.5 rounded-full border border-neutral-800 flex items-center gap-1">
-                ⭐ {movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}
-              </span>
-              <span className="uppercase border border-neutral-700 text-neutral-400 px-2 rounded-sm text-xs py-1">HD</span>
-            </div>
-            
-            <p className="text-gray-300 text-lg leading-relaxed mb-10 max-w-3xl">
-              {movie.overview || "No description available for this movie."}
+            <p className="text-gray-300 text-lg md:text-xl leading-relaxed mb-10 max-w-2xl font-light">
+              {desc}
             </p>
-            
-            <div className="flex">
+
+            {/* 🚀 Fully Working Download Button */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start mb-8">
               <a 
-                href={`https://www.google.com/search?q=site:hdhub4u.tv+OR+${encodeURIComponent(movie.title)}+hdhub4u+hindi+dub+download`}
-                target="_blank"
-                rel="noreferrer"
-                className="bg-amber-500 hover:bg-amber-600 text-black px-8 py-4 rounded-lg font-bold flex items-center gap-3 transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                href={url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-3 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-black px-8 py-4 rounded-2xl font-black text-lg transition-all shadow-[0_0_40px_rgba(250,204,21,0.3)] hover:scale-105 hover(-translate-y-1"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
-                Download from HDHub4u
+                <DownloadCloud className="w-6 h-6" /> 
+                {type === "Web Series" ? "Download Episodes" : "Download Movie"}
               </a>
             </div>
+
+            {/* 🔥 डाउनलोड बटन के ठीक नीचे 468x60 बैनर और दोनों Square Ads */}
+            <div className="w-full flex flex-col items-center md:items-start gap-6 mt-8">
+              <BannerAd468 />
+              
+              <div className="flex flex-wrap justify-center md:justify-start items-center gap-6">
+                <SquareAd />
+                <SquareAd />
+              </div>
+            </div>
+
           </div>
         </div>
+      </main>
 
-        {similarMovies.length > 0 && (
-          <div className="mt-24 w-full">
-            <h2 className="text-2xl font-bold mb-8 border-l-4 border-amber-500 pl-4 text-white">
-              Recommended Movies
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-              {similarMovies.map((simMovie: TMDBMovie) => (
-                <MovieCard 
-                  key={simMovie.id}
-                  id={simMovie.id} 
-                  title={simMovie.title || simMovie.original_title || "Unknown"}
-                  year={simMovie.release_date ? parseInt(simMovie.release_date.split('-')[0]) : 2026}
-                  imageUrl={simMovie.poster_path ? `https://image.tmdb.org/t/p/w500${simMovie.poster_path}` : "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?q=80&w=2070&auto=format&fit=crop"}
-                  category="Similar"
-                />
-              ))}
-            </div>
-          </div>
-        )}
-        
-      </div>
-    </main>
+    </div>
   );
 }

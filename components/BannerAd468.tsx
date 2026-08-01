@@ -2,14 +2,12 @@
 
 import { useEffect, useRef } from 'react';
 
-export default function AdBanner() {
+export default function BannerAd468() {
   const bannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // अगर बैनर पहले से लोड हो गया है तो दोबारा लोड मत करो
     if (!bannerRef.current || bannerRef.current.innerHTML !== '') return;
 
-    // 1. Settings (atOptions) लोड करो
     const confScript = document.createElement('script');
     confScript.type = 'text/javascript';
     confScript.innerHTML = `
@@ -23,7 +21,6 @@ export default function AdBanner() {
     `;
     bannerRef.current.appendChild(confScript);
 
-    // 2. Banner Script (invoke.js) लोड करो
     const invokeScript = document.createElement('script');
     invokeScript.type = 'text/javascript';
     invokeScript.src = 'https://blessingrecordpleasant.com/acec1bdab9ddc3eb4606318ee13d7115/invoke.js';
@@ -31,7 +28,7 @@ export default function AdBanner() {
   }, []);
 
   return (
-    <div className="w-full flex justify-center items-center">
+    <div className="w-full flex justify-center items-center overflow-hidden my-4">
       <div ref={bannerRef} />
     </div>
   );

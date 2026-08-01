@@ -1,92 +1,121 @@
-import sys
-import json
 import requests
+import json
 import re
 import os
 
-# 🔥 1. यहाँ अपनी TMDB API Key डाल (https://www.themoviedb.org/ से फ्री में मिलेगी)
-API_KEY = "YOUR_TMDB_API_KEY_HERE"
-JSON_PATH = "data/telegramlink.json"
+# 🔑 तेरा TMDB API Key
+TMDB_API_KEY = "f7ab0059bfd1e541fa8b3fb3d709517a"
+JSON_FILE_PATH = "data/telegramlink.json"
 
-def search_and_add_movie(query):
-    print(f"\n🎬 '{query}' को TMDB (मूवी/शो) पर ढूँढ रहा हूँ...")
+def search_tmdb(query, media_type):
+    url = f"https://api.themoviedb.org/3/search/{media_type}?api_key={TMDB_API_KEY}&query={query}&language=en-US"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json().get('results', [])
+    return []
+
+def clean_title_for_key(title, media_type):
+    # नाम को साफ़ करके JSON Key बनाना (e.g., Stranger Things Season 1 -> series_stranger_things_season_1)
+    clean_name = re.sub(r'[^a-z0-9\s]', '', title.lower()).strip().replace(' ', '_')
+    prefix = "series_" if media_type == 'tv' else "movie_"
+    return f"{prefix}{clean_name}"
+
+def main():
+    print("========================================")
+    print("🎬 MOVIE & WEB SERIES ADDER BOT 📺")
+    print("========================================\n")
     
-    # 🚀 'search/multi' यूज़ कर रहे हैं ताकि शो और मूवी दोनों मिलें
-    url = f"https://api.themoviedb.org/3/search/multi?api_key={API_KEY}&query={query}&language=en-US&page=1&include_adult=false"
+    # 1. पूछो क्या ऐड करना है?
+    choice = input("👉 Kya add karna hai? (1 for Movie, 2 for Web Series): ").strip()
+    if choice not in ['1', '2']:
+        print("❌ Galat input! Please 1 ya 2 dabayein.")
+        return
+        
+    media_type = 'tv' if choice == '2' else 'movie'
+    type_str = 'series' if choice == '2' else 'movie'
+
+    # 2. नाम पूछो (सिर्फ मेन नाम डालना है)
+    search_query = input(f"\n🔍 {type_str.capitalize()} ka naam batao (e.g., Stranger Things): ").strip()
     
+    print("\n⏳ TMDB par dhoondh raha hoon...")
+    results = search_tmdb(search_query, media_type)
+    
+    if not results:
+        print("❌ Kuch nahi mila! Spelling check karo ya TMDB par exist nahi karta.")
+        return
+
+    # 3. टॉप रिज़ल्ट्स दिखाओ
+    print("\n✅ Ye results mile hain:")
+    for i, item in enumerate(results[:5]): # Top 5 dikhayega
+        title = item.get('title') if media_type == 'movie' else item.get('name')
+        date = item.get('release_date') if media_type == 'movie' else item.get('first_air_date')
+        year = date.split('-')[0] if date else "Unknown"
+        print(f"   {i + 1}. {title} ({year})")
+    
+    # 4. सही रिज़ल्ट चुनो
     try:
-        response = requests.get(url)
-        # अगर API की सही नहीं है तो यहाँ एरर आएगा
-        if response.status_code != 200:
-            print(f"❌ TMDB API एरर! स्टेटस कोड: {response.status_code}")
-            print("   चेक करो कि तुमने 'API_KEY' की जगह अपनी असली चाबी डाली है या नहीं।")
-            return
+        sel_idx = int(input("\n👉 Sahi number choose karo (1-5): ")) - 1
+        if sel_idx < 0 or sel_idx >= len(results[:5]):
+            raise ValueError
+        selected = results[sel_idx]
+    except ValueError:
+        print("❌ Galat number. Script band ho rahi hai.")
+        return
 
-        data = response.json()
-        results = data.get('results', [])
-        
-        # सिर्फ़ मूवीज़ और टीवी शोज़ को ही फिल्टर करना (इंसानों को नहीं)
-        valid_results = [r for r in results if r.get('media_type') in ['movie', 'tv']]
+    # 5. असली नाम निकालो
+    title = selected.get('title') if media_type == 'movie' else selected.get('name')
+    
+    # 🔥 6. यहाँ है तेरा सीज़न वाला असली जादू 🔥
+    if media_type == 'tv':
+        season_num = input(f"\n📺 Kaunsa season add karna hai? (Sirf number likho jaise '1' ya '2'. Agar poori series ka ek link hai toh direct ENTER daba do): ").strip()
+        if season_num:
+            title = f"{title} Season {season_num}"
 
-        if not valid_results:
-            print("❌ कोई मूवी या शो नहीं मिला! नाम की स्पेलिंग चेक करो भाई।")
-            return
+    # 7. बाकी का डेटा निकालो
+    date = selected.get('release_date') if media_type == 'movie' else selected.get('first_air_date')
+    year = date.split('-')[0] if date else "2026"
+    rating = round(selected.get('vote_average', 8.0), 1)
+    overview = selected.get('overview', "No description available.")
+    
+    poster_path = selected.get('poster_path')
+    poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
 
-        # सबसे पहला (Top) सही रिजल्ट उठाना
-        movie = valid_results[0]
-        media_type = movie.get('media_type') # 'movie' या 'tv'
+    print(f"\n✅ Poster, Rating, aur Details fetch ho gayi!")
 
-        # मूवी और शो के डेटा में फर्क होता है
-        if media_type == 'movie':
-            raw_title = movie.get('title', 'Unknown')
-            year = movie.get('release_date', 'Unknown')[:4]
-        else: # टीवी शो के लिए
-            raw_title = movie.get('name', 'Unknown')
-            year = movie.get('first_air_date', 'Unknown')[:4]
-        
-        # नाम को साफ करके JSON Key बनाना
-        clean_title = re.sub(r'[^a-zA-Z0-9\s]', '', raw_title).lower().replace(' ', '_')
-        key = f"movie_{clean_title}"
-        if media_type == 'tv': key += "_show" # शो के लिए key अलग रखना
+    # 8. डाउनलोड लिंक पूछो
+    download_link = input(f"\n🔗 '{title}' ka HDHub4u/Hubcloud download link paste karo: ").strip()
 
-        # बाकी डिटेल्स
-        poster_path = movie.get('poster_path')
-        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""
-        rating = movie.get('vote_average', 0)
+    # 9. JSON एंट्री बनाओ
+    key = clean_title_for_key(title, media_type)
+    new_entry = {
+        "link": download_link,
+        "poster": poster_url,
+        "type": type_str,
+        "year": year,
+        "rating": rating,
+        "description": overview
+    }
 
-        # JSON फाइल को लोड करना
-        if os.path.exists(JSON_PATH):
-            with open(JSON_PATH, 'r', encoding='utf-8') as f:
-                try:
-                    vault_data = json.load(f)
-                except json.JSONDecodeError:
-                    vault_data = {}
-        else:
-            vault_data = {}
-
-        # डेटा अपडेट करना
-        vault_data[key] = {
-            "link": "YAHAN_APNA_HUBCLOUD_LINK_DAAL_DENA",
-            "poster": poster_url,
-            "year": year,
-            "rating": round(rating, 1)
-        }
-
-        # JSON फाइल में सेव करना
-        with open(JSON_PATH, 'w', encoding='utf-8') as f:
-            json.dump(vault_data, f, indent=4, ensure_ascii=False)
-            
-        print(f"✅ कमाल हो गया भाई! '{raw_title}' ({year}) ({media_type}) का डेटा JSON फाइल में ऐड हो गया है।")
-        print("👉 अब 'telegramlink.json' फाइल खोलो और 'YAHAN_APNA_HUBCLOUD_LINK_DAAL_DENA' को हटाकर अपना Hubcloud लिंक डाल दो!\n")
-
-    except Exception as e:
-        print(f"❌ कुछ एरर आ गया भाई: {e}")
-
-# 🔥 यह हिस्सा टर्मिनल से कमांड लेने के लिए है
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        movie_name = " ".join(sys.argv[1:])
-        search_and_add_movie(movie_name)
+    # 10. JSON फाइल में सेव करो
+    if not os.path.exists(JSON_FILE_PATH):
+        print(f"⚠️ {JSON_FILE_PATH} nahi mili, nayi file bana raha hoon.")
+        data = {}
     else:
-        movie_name = input("🍿 कौन सी मूवी/शो ऐड करनी है? नाम बताओ: ")
-        search_and_add_movie(movie_name)
+        with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+            try:
+                data = json.load(f)
+            except json.JSONDecodeError:
+                data = {}
+
+    data[key] = new_entry
+
+    with open(JSON_FILE_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+    print("\n🎉 BOOM! 🚀")
+    print(f"'{title}' successfully teri website par add ho gayi hai!")
+    print(f"Key used: {key}")
+    print("========================================\n")
+
+if __name__ == "__main__":
+    main()
