@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import telegramLinks from "@/data/telegramlink.json";
 import PosterCard from "@/components/PosterCard";
+import AdBanner from "@/components/AdBanner"; // 🔥 यहाँ AdBanner इम्पोर्ट कर लिया है
 import { Search, Flame, Film, Send } from "lucide-react";
 
 interface MovieItem {
@@ -15,14 +16,12 @@ interface MovieItem {
   isNew?: boolean;
 }
 
-// 🔥 TypeScript को समझाने के लिए हमने 'any' की जगह सही Type बना दिया
 type TelegramLinkValue = string | { link: string; poster?: string | null };
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const movies = useMemo(() => {
-    // 🔥 यहाँ 'any' हटाकर 'TelegramLinkValue' लगा दिया
     const vaultData = (telegramLinks as Record<string, TelegramLinkValue>) || {};
     
     const entries = Object.entries(vaultData);
@@ -42,14 +41,12 @@ export default function HomePage() {
       }
 
       if (cleanKey.length > 2 && !cleanKey.match(/^\d+$/)) {
-        // 🔥 (char) की जगह (char: string) कर दिया
         title = cleanKey.replace(/\b\w/g, (char: string) => char.toUpperCase());
       } else {
         try {
           const urlParts = url ? url.split('/').filter(Boolean) : [];
           let slug = urlParts[urlParts.length - 1] || "";
           slug = slug.replace(/-\d{4}.*/, '').replace(/-/g, ' ').trim();
-          // 🔥 यहाँ भी (char: string) कर दिया
           title = slug ? slug.replace(/\b\w/g, (char: string) => char.toUpperCase()) : `Movie ${index + 1}`;
         } catch {
           title = `Movie ${index + 1}`;
@@ -154,6 +151,9 @@ export default function HomePage() {
             />
           </div>
         </div>
+
+        {/* 🔥 बैनर एड यहाँ आ गया है! */}
+        <AdBanner />
 
         {/* Movie Grid */}
         {searchResults.length > 0 ? (

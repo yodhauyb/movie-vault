@@ -1,27 +1,43 @@
-"use client";
+'use client';
 
-import Script from "next/script";
-
-interface AdBannerProps {
-  zoneId?: string;
-}
-
-export default function AdBanner({ zoneId = "default" }: AdBannerProps) {
-  const uniqueUrl = `/ad.html?zone=${zoneId}&v=1`;
+export default function AdBanner() {
+  // 🔥 300x250 वाला बैनर एड (यह Iframe में सेफ रहेगा)
+  const adHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; }
+        </style>
+      </head>
+      <body>
+        <script type="text/javascript">
+          atOptions = {
+            'key' : '58f792a62d4cb0f52a80f6dab3cc1041',
+            'format' : 'iframe',
+            'height' : 250,
+            'width' : 300,
+            'params' : {}
+          };
+        </script>
+        <script type="text/javascript" src="https://www.highperformanceformat.com/58f792a62d4cb0f52a80f6dab3cc1041/invoke.js"></script>
+      </body>
+    </html>
+  `;
 
   return (
-    <div className="flex flex-col items-center justify-center w-full overflow-hidden">
-      <Script 
-        src="https://pl30599095.effectivecpmnetwork.com/87/80/5f/87805ff623c1e512ff9b550d915beb68.js" 
-        strategy="lazyOnload" 
-      />
-      <iframe 
-        src={uniqueUrl} 
-        width="468" 
-        height="60" 
-        className="border border-white/10 rounded-lg shadow-lg bg-black/50"
-        scrolling="no"
-      />
+    <div className="flex justify-center w-full my-8">
+      <div className="border border-white/10 rounded-xl shadow-2xl bg-[#0b0f19] overflow-hidden flex items-center justify-center min-w-[300px] min-h-[250px]">
+        <iframe 
+          srcDoc={adHtml}
+          width="300" 
+          height="250" 
+          className="border-0 bg-transparent"
+          scrolling="no"
+          frameBorder="0"
+          sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin"
+        />
+      </div>
     </div>
   );
 }

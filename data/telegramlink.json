@@ -9082,5 +9082,17 @@
     "movie_Spider_Man_Brand_New_Day": {
         "link": "https://hubcloud.cx/drive/mck1klxb1mlgxkr",
         "poster": "https://image.tmdb.org/t/p/w500/iPOn6DinuVyLY17YM9mKuPofV08.jpg"
-    }
+    },
+      "movie_balan": {
+    "link": "https://hubcloud.cx/drive/7mdhdd7fj5pitcz",
+    "poster": "https://www.themoviedb.org/t/p/w1280/boKxdR9tgXfkazf6yWgiDdleBy0.jpg", 
+    "year": "2023",
+    "rating": 7.5
+  },
+  "movie_the_legend_of_vox_machina": {
+    "link": "https://hubcloud.cx/drive/4y5p5lwgybs2r2t",
+    "poster": "https://www.themoviedb.org/t/p/w1280/4i7rUsnm8qyhofARv6ZXBUxMb3i.jpg",
+    "year": "2022",
+    "rating": 8.4
+  } 
 }
