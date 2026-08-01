@@ -21,7 +21,7 @@ interface MovieItem {
 
 type TelegramLinkValue = string | { link: string; poster?: string | null; type?: string; year?: string; rating?: number; description?: string };
 
-export default function HomePage() {
+export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("Home");
   const [visibleCount, setVisibleCount] = useState(18);
@@ -116,7 +116,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex bg-[#07090e] text-white font-[Outfit] selection:bg-red-500/30 w-full overflow-x-hidden">
       
-      {/* 🖥️ DESKTOP SIDEBAR (सिर्फ बड़ी स्क्रीन यानी लैपटॉप/पीसी पर ही दिखेगी, फोन पर हमेशा गायब रहेगी) */}
+      {/* 🖥️ DESKTOP SIDEBAR */}
       <aside className="hidden lg:flex fixed top-0 left-0 h-screen w-72 flex-col justify-between border-r border-white/5 glass-sidebar p-6 z-40 overflow-hidden">
         <div>
           <h1 className="text-4xl font-black tracking-tighter text-red-600 mb-10 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]">
@@ -169,17 +169,39 @@ export default function HomePage() {
         </div>
       </aside>
 
-      {/* 📱 MAIN CONTENT AREA (फोन पर यह 100% फुल विड्थ रहेगा) */}
+      {/* 📱 MAIN CONTENT AREA */}
       <main className="w-full lg:ml-72 flex-1 relative pb-28 md:pb-16 min-h-screen">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-red-600/10 blur-[150px] rounded-full pointer-events-none -z-10" />
 
         <div className="w-full max-w-7xl mx-auto px-4 md:px-10 pt-6 md:pt-12">
           
-          {/* 📱 MOBILE TOP BAR (VAULT + Krishna Name) */}
+          {/* 📱 MOBILE TOP BAR */}
           <div className="flex items-center justify-between mb-4 w-full">
             <h1 className="text-2xl font-black text-red-600 tracking-tighter">VAULT</h1>
             <div className="px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-red-500 shadow-[0_0_10px_rgba(220,38,38,0.2)]">
               Krishna
+            </div>
+          </div>
+
+          {/* 🔍 SEARCH BAR (अब यह `/search` पेज पर एकदम टॉप पर चमकेगा) */}
+          <div className="w-full mb-4 relative z-50">
+            <div className="relative w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />
+              <input 
+                type="text" 
+                placeholder="🔍 Search movies, web series here..." 
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(18); }}
+                className="w-full bg-[#161922] border-2 border-red-500/60 rounded-2xl pl-11 pr-10 py-3.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.3)]"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white bg-white/10 p-1 rounded-full"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -198,26 +220,6 @@ export default function HomePage() {
                 {tab}
               </button>
             ))}
-          </div>
-
-          {/* 📱 PERMANENT SEARCH BAR */}
-          <div className="relative w-full mb-4">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />
-            <input 
-              type="text" 
-              placeholder="Search movies, web series..." 
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(18); }}
-              className="w-full bg-[#11141d] border border-white/15 rounded-xl pl-10 pr-10 py-3 text-sm focus:outline-none focus:border-red-500 shadow-lg"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
           </div>
 
           {/* 📱 MOBILE AD BANNER */}
