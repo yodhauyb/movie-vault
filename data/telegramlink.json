@@ -9392,5 +9392,34 @@
         "year": "2026",
         "rating": 6.7,
         "description": "Haunted by a childhood romance and recollections of love lost during the 1947 Partition of India, 95-year-old Ishar Singh Grewal shares his story with his grandson Nirvair, the past unfolding through memories of migration, longing, and a romance that endures across generations."
+    },
+    "series_Indias_Got_Latent_episode1":{
+        "link": "https://hubcloud.cx/drive/j7xxbovoxbwi15x",
+        "poster":"https://image.tmdb.org/t/p/w500/eml0QA3zUMizBvrlfQKhWI0swVh.jpg",
+        "type": "series",
+        "year": "2026"
+
+    },
+    "series_Indias_Got_Latent_episode2":{
+        "link": "https://hubcloud.cx/drive/i8kh78i6sk81kdd",
+        "poster":"https://image.tmdb.org/t/p/w500/eml0QA3zUMizBvrlfQKhWI0swVh.jpg",
+        "type": "series",
+        "year": "2026"
+
+    },
+     "series_Indias_Got_Latent_episode3":{
+        "link": "https://hubcloud.cx/drive/tfyg3u0fsua55t1",
+        "poster":"https://image.tmdb.org/t/p/w500/eml0QA3zUMizBvrlfQKhWI0swVh.jpg",
+        "type": "series",
+        "year": "2026"
+
+    },
+    "series_Indias_Got_Latent_episode4":{
+        "link": "https://hubcloud.cx/drive/y4wysje1i01yacg",
+        "poster":"https://image.tmdb.org/t/p/w500/eml0QA3zUMizBvrlfQKhWI0swVh.jpg",
+        "type": "series",
+        "year": "2026"
     }
+    
+    
 }
