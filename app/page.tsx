@@ -5,7 +5,7 @@ import Link from 'next/link';
 import telegramLinks from "@/data/telegramlink.json";
 import AdBanner from "@/components/AdBanner"; 
 import SquareAd from "@/components/SquareAd"; 
-import { Search, Film, Tv, Star, Play, Home, User, ArrowRight } from "lucide-react";
+import { Search, Film, Tv, Star, Play, Home, ArrowRight, X } from "lucide-react";
 
 interface MovieItem {
   id: string;
@@ -21,12 +21,12 @@ interface MovieItem {
 
 type TelegramLinkValue = string | { link: string; poster?: string | null; type?: string; year?: string; rating?: number; description?: string };
 
-export default function HomePage() {
+export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("Home");
   const [visibleCount, setVisibleCount] = useState(18);
 
-  const DIRECT_AD_LINK = "https://blessingrecordpleasant.com/zd815d82xk?key=7617951c76724b05445e6f3e843d4f44"; 
+  const DIRECT_AD_LINK = "https://www.effectivecpmnetwork.com/zcavyp0r?key=f0cab9cdce909f11003571d769eaef2e"; 
 
   const handleMovieClick = () => {
     if(DIRECT_AD_LINK) {
@@ -114,10 +114,10 @@ export default function HomePage() {
   const featuredMovie = movies[0];
 
   return (
-    <div className="min-h-screen flex bg-[#07090e] text-white font-[Outfit] selection:bg-red-500/30">
+    <div className="min-h-screen flex bg-[#07090e] text-white font-[Outfit] selection:bg-red-500/30 w-full overflow-x-hidden">
       
       {/* 🖥️ DESKTOP SIDEBAR */}
-      <aside className="hidden md:flex fixed top-0 left-0 h-screen w-72 flex-col justify-between border-r border-white/5 glass-sidebar p-6 z-40 overflow-hidden">
+      <aside className="hidden lg:flex fixed top-0 left-0 h-screen w-72 flex-col justify-between border-r border-white/5 glass-sidebar p-6 z-40 overflow-hidden">
         <div>
           <h1 className="text-4xl font-black tracking-tighter text-red-600 mb-10 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]">
             VAULT
@@ -158,7 +158,6 @@ export default function HomePage() {
         </div>
 
         <div>
-          {/* 🔥 SIDEBAR BANNER AD FIXED */}
           <div className="mb-6 w-full flex justify-center bg-white/5 rounded-xl border border-white/10 overflow-hidden p-2">
              <AdBanner />
           </div>
@@ -171,24 +170,48 @@ export default function HomePage() {
       </aside>
 
       {/* 📱 MAIN CONTENT AREA */}
-      <main className="flex-1 md:ml-72 relative pb-24 md:pb-16 min-h-screen">
+      <main className="w-full lg:ml-72 flex-1 relative pb-28 md:pb-16 min-h-screen">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-red-600/10 blur-[150px] rounded-full pointer-events-none -z-10" />
 
-        <div className="max-w-7xl mx-auto px-4 md:px-10 pt-8 md:pt-12">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-10 pt-6 md:pt-12">
           
-          <div className="flex md:hidden items-center justify-between mb-6">
-            <h1 className="text-2xl font-black text-red-600">VAULT</h1>
-            <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10">
-              <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200" alt="Profile" className="w-full h-full object-cover" />
+          {/* 📱 MOBILE TOP BAR */}
+          <div className="flex items-center justify-between mb-4 w-full">
+            <h1 className="text-2xl font-black text-red-600 tracking-tighter">VAULT</h1>
+            <div className="px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-red-500 shadow-[0_0_10px_rgba(220,38,38,0.2)]">
+              Krishna
             </div>
           </div>
 
-          <div className="md:hidden flex overflow-x-auto gap-3 pb-4 mb-6 snap-x hide-scrollbar">
+          {/* 🔍 SEARCH BAR (अब यह `/search` पेज पर एकदम टॉप पर चमकेगा) */}
+          <div className="w-full mb-4 relative z-50">
+            <div className="relative w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />
+              <input 
+                type="text" 
+                placeholder="🔍 Search movies, web series here..." 
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(18); }}
+                className="w-full bg-[#161922] border-2 border-red-500/60 rounded-2xl pl-11 pr-10 py-3.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.3)]"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white bg-white/10 p-1 rounded-full"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 📱 MOBILE TABS */}
+          <div className="flex overflow-x-auto gap-3 pb-2 mb-3 snap-x hide-scrollbar w-full">
             {['Home', 'Movies', 'Web Series'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => { setActiveTab(tab); setVisibleCount(18); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`snap-start whitespace-nowrap px-6 py-2 rounded-full text-xs font-bold transition-all ${
+                className={`snap-start whitespace-nowrap px-5 py-2 rounded-full text-xs font-bold transition-all ${
                   activeTab === tab 
                   ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.4)]' 
                   : 'glass border border-white/10 text-white'
@@ -200,7 +223,7 @@ export default function HomePage() {
           </div>
 
           {/* 📱 MOBILE AD BANNER */}
-          <div className="md:hidden flex justify-center w-full mb-6">
+          <div className="flex justify-center w-full mb-6">
             <div className="w-full overflow-hidden rounded-xl bg-white/5 border border-white/10 flex items-center justify-center py-2">
               <AdBanner />
             </div>
@@ -234,7 +257,7 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* 🔥 300x250 SQUARE AD BANNER */}
+          {/* 🔥 SQUARE AD BANNER */}
           <div className="flex justify-center w-full my-10">
             <SquareAd />
           </div>
@@ -295,19 +318,24 @@ export default function HomePage() {
       </main>
 
       {/* 📱 MOBILE BOTTOM NAVIGATION */}
-      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-sm glass border border-white/10 rounded-full px-6 py-3.5 flex justify-between items-center z-50 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-sm glass border border-white/15 rounded-full px-8 py-3.5 flex justify-around items-center z-50 shadow-[0_20px_50px_rgba(0,0,0,0.7)] bg-[#0c0e15]/90 backdrop-blur-xl">
         {[
           { name: 'Home', icon: Home, tab: "Home" },
           { name: 'Movies', icon: Film, tab: "Movies" },
-          { name: 'Series', icon: Tv, tab: "Web Series" },
-          { name: 'Profile', icon: User, tab: "Profile" }
+          { name: 'Series', icon: Tv, tab: "Web Series" }
         ].map((item) => (
           <button 
             key={item.name} 
-            onClick={() => { if(item.tab !== "Profile") { setActiveTab(item.tab); setVisibleCount(18); window.scrollTo({ top: 0, behavior: 'smooth' }); }}}
-            className={`flex flex-col items-center gap-1 transition-colors ${activeTab === item.tab ? 'text-red-500' : 'text-gray-400 hover:text-white'}`}
+            onClick={() => { 
+              setActiveTab(item.tab); 
+              setVisibleCount(18); 
+              window.scrollTo({ top: 0, behavior: 'smooth' }); 
+            }}
+            className={`flex flex-col items-center gap-1 transition-colors ${
+              activeTab === item.tab ? 'text-red-500 scale-110' : 'text-gray-400 hover:text-white'
+            }`}
           >
-            <item.icon className={`w-5 h-5 ${activeTab === item.tab ? 'fill-red-500/20' : ''}`} />
+            <item.icon className="w-5 h-5" />
           </button>
         ))}
       </div>
