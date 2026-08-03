@@ -1,13 +1,54 @@
 /* eslint-disable @next/next/no-img-element */
+import type { Metadata } from 'next'; // 🌟 SEO के लिए इम्पोर्ट किया
 import Link from "next/link";
 import telegramLinks from "@/data/telegramlink.json";
 import { ArrowLeft, Star, DownloadCloud, Film } from "lucide-react";
 import SquareAd from "@/components/SquareAd"; 
-import BannerAd468 from "@/components/BannerAd468"; // 🔥 468x60 बैनर इम्पोर्ट कर लिया
+import BannerAd468 from "@/components/BannerAd468";
 
 // TypeScript Format
 type TelegramLinkValue = string | { link: string; poster?: string | null; type?: string; year?: string; rating?: number; description?: string };
 
+// ==========================================
+// 🚀 1. DYNAMIC SEO METADATA FUNCTION
+// ==========================================
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  
+  // मूवी की डिटेल्स JSON से निकालना
+  const decodedId = decodeURIComponent(id);
+  const vaultData = (telegramLinks as Record<string, TelegramLinkValue>) || {};
+  const movieData = vaultData[decodedId];
+
+  // नाम क्लीन करना (जैसे तेरे मेन कोड में है)
+  const cleanKey = decodedId.replace(/^movie_/, '').replace(/^series_/, '').replace(/_/g, ' ').trim();
+  const title = cleanKey.replace(/\b\w/g, char => char.toUpperCase());
+
+  // डिस्क्रिप्शन और पोस्टर सेट करना
+  const desc = typeof movieData === 'object' && movieData?.description 
+    ? movieData.description 
+    : `Experience ${title} in full HD. Fast download and seamless streaming directly from our Vault servers.`;
+    
+  const posterUrl = typeof movieData === 'object' && movieData?.poster 
+    ? movieData.poster 
+    : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1000";
+
+  // 🌟 फाइनल SEO टैग्स जो गूगल को दिखेंगे
+  return {
+    title: `${title} HD Watch Online - Movie Vault`,
+    description: desc,
+    openGraph: {
+      title: `${title} - Movie Vault`,
+      description: desc,
+      images: [posterUrl], // जब WhatsApp/Telegram पर लिंक शेयर करेगा तो ये पोस्टर दिखेगा
+    },
+  };
+}
+
+
+// ==========================================
+// 🎬 2. MAIN PAGE COMPONENT (तेरा असली कोड)
+// ==========================================
 export default async function MovieDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
@@ -92,7 +133,7 @@ export default async function MovieDetail({ params }: { params: Promise<{ id: st
                 href={url} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-3 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-black px-8 py-4 rounded-2xl font-black text-lg transition-all shadow-[0_0_40px_rgba(250,204,21,0.3)] hover:scale-105 hover(-translate-y-1"
+                className="flex items-center justify-center gap-3 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-black px-8 py-4 rounded-2xl font-black text-lg transition-all shadow-[0_0_40px_rgba(250,204,21,0.3)] hover:scale-105 hover:-translate-y-1"
               >
                 <DownloadCloud className="w-6 h-6" /> 
                 {type === "Web Series" ? "Download Episodes" : "Download Movie"}
