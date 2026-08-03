@@ -3,7 +3,7 @@ import telegramLinks from '@/data/telegramlink.json';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   // 🔥 यहाँ अपनी वेबसाइट का असली Vercel लिंक डालना
-  const baseUrl = 'https://movie-vault-rraz.vercel.'; 
+  const baseUrl = 'https://movie-vault-rraz.vercel.app'; 
 
   // JSON फाइल से सारी मूवीज़ के लिंक्स ऑटोमैटिकली निकालना
   const movieUrls = Object.keys(telegramLinks).map((id) => ({
